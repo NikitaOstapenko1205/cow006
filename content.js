@@ -2,15 +2,17 @@ window.addEventListener('load', () => {
 
 	if (document.body.classList.contains('game_interface')) {
 		const playersZone = document.querySelector('#player_boards');
-		const gamesId = document.querySelector('.gamerank_no').id.replace('gamerank_no_', '');
+		const gamesId = document.querySelector('.gamerank_no')?.id.replace('gamerank_no_', '');
 
-		Array.from(playersZone.querySelectorAll('.player-name')).map((player) => {
-			const id = player.id.replace('player_name_', '');
-			fetch(`https://boardgamearena.com/gamestats/gamestats/getGames.html?player=${id}&game_id=${gamesId}&opponent_id=0&updateStats=1`).
-				then((response) => response.json()).
-				then((response) => makePlayerInfo(id, response)).
-				catch((err) => console.log(err));
-		});
+		if (!!gamesId) {
+			Array.from(playersZone.querySelectorAll('.player-name')).map((player) => {
+				const id = player.id.replace('player_name_', '');
+				fetch(`https://boardgamearena.com/gamestats/gamestats/getGames.html?player=${id}&game_id=${gamesId}&opponent_id=0&updateStats=1`).
+					then((response) => response.json()).
+					then((response) => makePlayerInfo(id, response)).
+					catch((err) => console.log(err));
+			});
+		}
 
 		const makePlayerInfo = (playerId, playerInfo) => {
 			const playerInfoToRender = {};
@@ -48,6 +50,7 @@ window.addEventListener('load', () => {
 		let tableCards = [];
 		let releasedCards = [];
 		const gameZone = document.querySelector('#gamespace_wrap');
+		const overallContentBlock = document.querySelector('#overall-content');
 
 		const getCards = (cards, replaceString) => {
 			return cards.map((card) => {
@@ -71,7 +74,7 @@ window.addEventListener('load', () => {
 				remainingBlock.innerText = `Remaining cards: \n ${remainingCards}`;
 				releasedBlock.innerText = `Released cards: \n ${releasedCards}`;
 
-				if (document.querySelector('#overall-content').classList.value === 'gamestate_cardChoice') {
+				if (overallContentBlock.classList.contains('gamestate_cardChoice')) {
 					remainingBlock.style.top = '0';
 					releasedBlock.style.top = '0';
 				}
@@ -93,10 +96,64 @@ window.addEventListener('load', () => {
 			gameZone.classList.add('info-added');
 		}
 
+		const makeRightHeadNumber = (cardId) => {
+			const num = parseInt(cardId);
+			if (num === 55) {
+				return 7;
+			} else if ((num % 5) === 0 && (num % 10) !== 0) {
+				return 2;
+			} else if ((num % 10) === 0) {
+				return 3;
+			} else if ((num % 11) === 0) {
+				return 5;
+			} else {
+				return 1;
+			}
+		}
+
+		const renderHeadsInRow = (heads) => {
+			const headsCount = Object.values(heads);
+
+			for (let i = 1; i < 5; i++) {
+				const rowHeadSpan = document.querySelector(`#row_${i} .row-head-count`);
+
+				if (!!rowHeadSpan) {
+					rowHeadSpan.innerText = `${headsCount[i - 1]}`;
+					continue;
+				}
+
+				const headSpan = document.createElement('span');
+				headSpan.classList.add('row-head-count');
+				headSpan.innerText = `${headsCount[i - 1]}`;
+				headSpan.style.cssText = 'font-size: 28px;';
+				document.querySelector(`#row_${i} .lastplace`).append(headSpan);
+			}
+		}
+
+		const calculateHeadsInRow = (cardsOnTable) => {
+			const heads = cardsOnTable.map((card) => ({position: card.offsetTop ?? null, num: card.id?.replace('card_', '') ?? null}))
+				.filter((card) => !!card.position)
+				.reduce((acc, card) => {
+					if (acc[card.position]) {
+						return {...acc, [card.position]: acc[card.position] + makeRightHeadNumber(card.num)};
+					}
+					return {...acc, [card.position]: makeRightHeadNumber(card.num)};
+				}, {});
+
+			renderHeadsInRow(heads);
+		}
+
 		const makeCards = () => {
 			let oldTableCards = [...tableCards];
+			const newTableCards = Array.from(document.querySelector('#cards_on_table').childNodes);
+			if (overallContentBlock.classList.contains('gamestate_cardChoice') ||
+					overallContentBlock.classList.contains('gamestate_smallestCard')
+			) {
+				calculateHeadsInRow(newTableCards);
+			}
+
 			handCards = getCards(Array.from(document.querySelector('#player_hand').childNodes), 'player_hand_item_');
-			tableCards = getCards(Array.from(document.querySelector('#cards_on_table').childNodes), 'card_');
+			tableCards = getCards(newTableCards, 'card_');
 			oldTableCards = oldTableCards.filter((card) => {
 				return !tableCards.includes(card);
 			});
@@ -130,27 +187,29 @@ window.addEventListener('load', () => {
 				resetCards();
 			}
 			else if (
-				document.querySelector('#overall-content').classList.value === 'gamestate_cardPlace' ||
-				document.querySelector('#overall-content').classList.value === 'gamestate_smallestCard'
+				overallContentBlock.classList.contains('gamestate_cardPlace') ||
+				overallContentBlock.classList.contains('gamestate_smallestCard')
 			) {
 				gameZone.querySelector('.remaining').style.top = '460px';
 				gameZone.querySelector('.released').style.top = '460px';
 			}
-			else if (document.querySelector('#overall-content').classList.value === 'gamestate_cardChoice') {
+			else if (overallContentBlock.classList.contains('gamestate_cardChoice')) {
 				makeCards();
 			}
-			else if (document.querySelector('#overall-content').classList.value === 'gamestate_gameEnd') {
+			else if (overallContentBlock.classList.contains('gamestate_gameEnd')) {
 				gameStateObserver.disconnect();
 				cardsChangedObserver.disconnect();
 				console.log("KONEC");
 			}
 		});
-		gameStateObserver.observe(document.querySelector('#overall-content'), {attributes: true});
+		gameStateObserver.observe(overallContentBlock, {attributes: true});
 
 		const cardsChangedObserver = new MutationObserver (() => {
 			makeCards();
 		});
 		cardsChangedObserver.observe(document.querySelector('#cards_on_table'), {childList: true});
 	}
+
+	if (window.location.pathname.includes('downforce')) {}
 
 });

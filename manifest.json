@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "BGA game helper",
   "description": "Extension for calculate cards in '6 nimmt', show game info in all games",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Nikita Ostapenko",
   "icons": {
 //    "16": "icon16.png",
