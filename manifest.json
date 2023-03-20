@@ -1,18 +1,21 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "BGA game helper",
   "description": "Extension for calculate cards in '6 nimmt', show game info in all games",
-  "version": "0.0.3",
-  "author": "Nikita Ostapenko",
-  "icons": {
-//    "16": "icon16.png",
-//    "48": "icon48.png",
-//    "128": "icon128.png"
-  },
+  "version": "0.0.4",
+  "author": "Mykyta Ostapenko",
+  "icons": {},
   "content_scripts": [
     {
       "matches": ["https://boardgamearena.com/*"],
-      "js": ["content.js"]
+      "js": ["inject.js"],
+      "css": ["style.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["content.js"],
+      "matches": ["https://boardgamearena.com/*"]
     }
   ]
 }

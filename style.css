@@ -1,0 +1,5 @@
+.table_card_hover {
+    transform: scale(1.01);
+    box-shadow: 0px 0px 10px yellow;
+    border: 3px solid blue;
+}

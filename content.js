@@ -7,7 +7,15 @@ window.addEventListener('load', () => {
 		if (!!gamesId) {
 			Array.from(playersZone.querySelectorAll('.player-name')).map((player) => {
 				const id = player.id.replace('player_name_', '');
-				fetch(`https://boardgamearena.com/gamestats/gamestats/getGames.html?player=${id}&game_id=${gamesId}&opponent_id=0&updateStats=1`).
+				const headers = new Headers({
+					'x-request-token': window.bgaConfig.requestToken
+				});
+				fetch(`https://boardgamearena.com/gamestats/gamestats/getGames.html?player=${id}&game_id=${gamesId}&opponent_id=0&updateStats=1`,
+					{
+						method: 'GET',
+						headers: headers
+					}
+				).
 					then((response) => response.json()).
 					then((response) => makePlayerInfo(id, response)).
 					catch((err) => console.log(err));
@@ -52,6 +60,48 @@ window.addEventListener('load', () => {
 		const gameZone = document.querySelector('#gamespace_wrap');
 		const overallContentBlock = document.querySelector('#overall-content');
 
+		//Added hover listener on hand cards to find nearest cards
+		document.querySelector('#player_hand').addEventListener('mouseover', (e) => {
+			const targetId = e.target.id;
+
+			if (targetId.includes('player_hand_item')) {
+				const newTableCards = Array.from(document.querySelector('#cards_on_table').childNodes);
+				const tableCards = getCards(newTableCards, 'card_');
+				const handCardId = Number(targetId.replace('player_hand_item_', ''));
+				let nearestSmallerNumber = 0;
+				let nearestLargerNumber = 0;
+
+				for (let i = 0; i < tableCards.length; i++) {
+					if (tableCards[i] > handCardId) {
+						if (nearestLargerNumber === 0) {
+							nearestLargerNumber = tableCards[i];
+							continue;
+						}
+						nearestLargerNumber = (tableCards[i] - nearestLargerNumber)  < 0 ? tableCards[i] : nearestLargerNumber;
+					} else {
+						if (nearestSmallerNumber === 0) {
+							nearestSmallerNumber = tableCards[i];
+							continue;
+						}
+
+						nearestSmallerNumber = (tableCards[i] - nearestSmallerNumber)  < 0 ? nearestSmallerNumber : tableCards[i];
+					}
+				}
+				console.log(nearestLargerNumber, nearestSmallerNumber);
+				const nearestLargerNumberCard = document.querySelector(`#card_content_${nearestLargerNumber}`);
+				const nearestSmallerNumberCard = document.querySelector(`#card_content_${nearestSmallerNumber}`);
+
+				nearestLargerNumberCard?.classList.add('table_card_hover');
+				nearestSmallerNumberCard?.classList.add('table_card_hover');
+			}
+		});
+
+		//removed classes from nearest cards on table
+		document.querySelector('#player_hand').addEventListener('mouseout', () => {
+			const tableCardWithHoverClasses = Array.from(document.querySelectorAll('.table_card_hover'));
+			tableCardWithHoverClasses.map((node) => node.classList.remove('table_card_hover'));
+		});
+
 		const getCards = (cards, replaceString) => {
 			return cards.map((card) => {
 				if (!!card.id) {
@@ -63,10 +113,6 @@ window.addEventListener('load', () => {
 		}
 
 		const renderCards = (gameZone, handCards, tableCards, releasedCards, remainingCards) => {
-			console.log(`REMAINING: ${remainingCards}`);
-			console.log(`RELEASED : ${releasedCards}`);
-			console.log(`TABLE : ${tableCards}`);
-			console.log(`HAND : ${handCards}`);
 
 			if (gameZone.classList.contains('info-added')) {
 				const remainingBlock = gameZone.querySelector('.remaining');
